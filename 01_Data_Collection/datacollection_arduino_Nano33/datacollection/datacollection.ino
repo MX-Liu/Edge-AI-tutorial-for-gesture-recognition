@@ -16,11 +16,11 @@ BLEService imuService(CUSTOM_SERVICE_UUID);
 BLECharacteristic cleanedDataCharacteristic(DATA_CHAR_UUID, BLENotify | BLERead, SENSOR_DATA_SIZE);
 
 // --- Data Buffers and State Variables ---
-constexpr int acceleration_data_length = 600 * 3;
+constexpr int acceleration_data_length = 200 * 3;
 float acceleration_data[acceleration_data_length] = {};
 int acceleration_data_index = 0;
 
-constexpr int gyroscope_data_length = 600 * 3;
+constexpr int gyroscope_data_length = 200 * 3;
 float gyroscope_data[gyroscope_data_length] = {};
 int gyroscope_data_index = 0;
 

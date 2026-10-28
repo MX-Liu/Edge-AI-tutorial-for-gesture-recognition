@@ -3,48 +3,139 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web BLE IMU Data Collector</title>
+    <meta name="theme-color" content="#07111f">
+    <meta name="description" content="Connect to an Arduino Nano 33 BLE Sense, monitor IMU motion, and export labeled gesture data.">
+    <title>Motion Lab — IMU Data Collector</title>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" defer></script>
+    <script src="app.js" defer></script>
 </head>
 <body>
-    <div class="container">
-        <h1>IMU Data Collector (Web Bluetooth)</h1>
-        <div class="controls">
-            <button id="connectBtn">Connect to Device</button>
-            <button id="disconnectBtn" disabled>Disconnect</button>
-        </div>
-        <div id="status" class="status-disconnected">Disconnected</div>
-
-        <!-- New Recording Controls -->
-        <div class="recording-controls">
-            <input type="text" id="labelInput" placeholder="Enter Data Label (e.g., circle)">
-            <button id="recordBtn" disabled>Start Recording</button>
-            <button id="saveBtn" disabled>Save Data</button>
-        </div>
-
-        <div class="data-grid">
-            <div class="data-item accel">
-                <h2>Linear Acceleration (g)</h2>
-                <p><strong>X:</strong> <span id="ax">0.0000</span></p>
-                <p><strong>Y:</strong> <span id="ay">0.0000</span></p>
-                <p><strong>Z:</strong> <span id="az">0.0000</span></p>
+    <div class="app-shell">
+        <header class="hero">
+            <div class="eyebrow"><span class="eyebrow-mark" aria-hidden="true"></span> Edge AI motion lab</div>
+            <div class="hero-content">
+                <div>
+                    <h1>Turn movement into<br><span>training data.</span></h1>
+                    <p class="hero-copy">Connect your Arduino, inspect the live IMU signal, and capture a clean, labeled gesture dataset.</p>
+                </div>
+                <div class="device-badge" aria-label="Designed for Arduino Nano 33 BLE Sense">
+                    <span class="device-icon" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+                    <span><small>Built for</small>Nano 33 BLE Sense</span>
+                </div>
             </div>
-            <div class="data-item gyro">
-                <h2>Cleaned Gyroscope (°/s)</h2>
-                <p><strong>X:</strong> <span id="gx">0.0000</span></p>
-                <p><strong>Y:</strong> <span id="gy">0.0000</span></p>
-                <p><strong>Z:</strong> <span id="gz">0.0000</span></p>
-            </div>
-        </div>
+        </header>
 
-        <div class="chart-container">
-            <canvas id="imuChart"></canvas>
-        </div>
+        <main>
+            <div id="browserNotice" class="notice" role="alert" hidden>
+                <strong>Web Bluetooth isn’t available in this browser.</strong>
+                Open this page in desktop Chrome or Edge over <code>http://localhost</code> to connect your board.
+            </div>
+
+            <section class="control-panel" aria-labelledby="connectionTitle">
+                <div class="panel-heading">
+                    <div class="step-number" aria-hidden="true">1</div>
+                    <div>
+                        <p class="section-kicker">Device</p>
+                        <h2 id="connectionTitle">Connect your board</h2>
+                    </div>
+                </div>
+                <div class="connection-row">
+                    <div id="status" class="status status-disconnected" role="status" aria-live="polite">
+                        <span class="status-dot" aria-hidden="true"></span>
+                        <span><strong id="statusTitle">Not connected</strong><small id="statusDetail">Your data stays on this device.</small></span>
+                    </div>
+                    <div class="button-group">
+                        <button id="connectBtn" class="button button-primary" type="button">
+                            <span class="button-icon" aria-hidden="true">⌁</span><span>Connect device</span>
+                        </button>
+                        <button id="disconnectBtn" class="button button-secondary" type="button" disabled>Disconnect</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="control-panel" aria-labelledby="recordingTitle">
+                <div class="panel-heading">
+                    <div class="step-number" aria-hidden="true">2</div>
+                    <div>
+                        <p class="section-kicker">Capture</p>
+                        <h2 id="recordingTitle">Record a gesture</h2>
+                    </div>
+                    <div class="recording-stats" aria-live="polite">
+                        <span><strong id="sampleCount">0</strong> samples</span>
+                        <span><strong id="recordingTime">00:00.0</strong> duration</span>
+                    </div>
+                </div>
+                <div class="recording-controls">
+                    <label class="field" for="labelInput">
+                        <span>Gesture label</span>
+                        <input type="text" id="labelInput" maxlength="40" autocomplete="off" placeholder="e.g. circle, wave, punch">
+                        <small id="labelHelp">Use one consistent label for each gesture type.</small>
+                    </label>
+                    <button id="recordBtn" class="button button-record" type="button" disabled>
+                        <span class="record-dot" aria-hidden="true"></span><span>Start recording</span>
+                    </button>
+                    <button id="saveBtn" class="button button-secondary" type="button" disabled>
+                        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 19h14"/></svg><span>Save CSV</span>
+                    </button>
+                </div>
+            </section>
+
+            <section class="sensor-section" aria-labelledby="sensorTitle">
+                <div class="section-title-row">
+                    <div><p class="section-kicker">Live signal</p><h2 id="sensorTitle">Sensor values</h2></div>
+                    <div class="stream-indicator"><span aria-hidden="true"></span> Live stream</div>
+                </div>
+                <div class="sensor-grid">
+                    <article class="sensor-card acceleration">
+                        <div class="sensor-card-heading">
+                            <div class="sensor-icon" aria-hidden="true">A</div>
+                            <div><h3>Linear acceleration</h3><p>Gravity-compensated · g</p></div>
+                        </div>
+                        <dl class="axis-list">
+                            <div><dt><span class="axis axis-x">X</span> Horizontal</dt><dd id="ax">0.000</dd></div>
+                            <div><dt><span class="axis axis-y">Y</span> Vertical</dt><dd id="ay">0.000</dd></div>
+                            <div><dt><span class="axis axis-z">Z</span> Depth</dt><dd id="az">0.000</dd></div>
+                        </dl>
+                    </article>
+                    <article class="sensor-card gyroscope">
+                        <div class="sensor-card-heading">
+                            <div class="sensor-icon" aria-hidden="true">G</div>
+                            <div><h3>Angular velocity</h3><p>Drift-corrected · °/s</p></div>
+                        </div>
+                        <dl class="axis-list">
+                            <div><dt><span class="axis axis-x">X</span> Roll</dt><dd id="gx">0.000</dd></div>
+                            <div><dt><span class="axis axis-y">Y</span> Pitch</dt><dd id="gy">0.000</dd></div>
+                            <div><dt><span class="axis axis-z">Z</span> Yaw</dt><dd id="gz">0.000</dd></div>
+                        </dl>
+                    </article>
+                </div>
+            </section>
+
+            <section class="chart-panel" aria-labelledby="chartTitle">
+                <div class="section-title-row">
+                    <div><p class="section-kicker">Signal monitor</p><h2 id="chartTitle">Motion over time</h2></div>
+                    <button id="clearChartBtn" class="text-button" type="button">Clear chart</button>
+                </div>
+                <div class="chart-container">
+                    <canvas id="imuChart" aria-label="Live chart of acceleration and angular velocity" role="img"></canvas>
+                    <div id="chartFallback" class="chart-fallback" hidden>Chart unavailable. Sensor values and recording will still work.</div>
+                </div>
+                <p class="chart-note">Select a legend item to show or hide that signal. Acceleration uses the left axis; rotation uses the right.</p>
+            </section>
+
+            <aside class="tip-card">
+                <span class="tip-icon" aria-hidden="true">✦</span>
+                <div><strong>For cleaner samples</strong><p>Hold the board still for 2–3 seconds after connecting, then begin each gesture from the same position.</p></div>
+            </aside>
+        </main>
+
+        <footer>
+            <span>Motion Lab · Local-first data collection</span>
+            <span>6-axis IMU <i aria-hidden="true"></i> Bluetooth LE <i aria-hidden="true"></i> CSV export</span>
+        </footer>
     </div>
-
-    <!-- Include Chart.js library from a CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Include our application logic -->
-    <script src="app.js"></script>
+    <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 </body>
 </html>

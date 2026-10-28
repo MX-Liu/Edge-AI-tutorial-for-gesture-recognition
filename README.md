@@ -1,4 +1,4 @@
-# MobileHCI2025: Workshop ODISI Tutorial — Gesture Recognition (End‑to‑End)
+# Edge AI tutorial for gesture recognition (from sensor data collection to deployment)
 
 An end‑to‑end workflow to collect IMU data from an Arduino Nano 33 BLE Sense, train a gesture recognition model, and deploy it back to the board using TensorFlow Lite for Microcontrollers.
 
